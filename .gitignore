@@ -6,3 +6,4 @@ data/*
 .ipynb_checkpoints/
 !results/
 !results/*.png
+results/*.csv
