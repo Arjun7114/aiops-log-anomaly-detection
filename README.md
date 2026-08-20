@@ -1,6 +1,6 @@
 # AIOps: Log Anomaly Detection using Isolation Forest
 
-!\[Python CI](https://github.com/Arjun7114/aiops-log-anomaly-detection/actions/workflows/python-ci.yaml/badge.svg)
+![Python CI](https://github.com/Arjun7114/aiops-log-anomaly-detection/actions/workflows/python-ci.yaml/badge.svg)
 
 Detecting anomalies in system logs using **unsupervised machine learning** — no labels required at training time. The pipeline replaces brittle, hand-written regex parsing with automatic **log template mining**, turns unstructured logs into a numeric feature matrix, and flags anomalous behaviour with an **Isolation Forest**.
 
