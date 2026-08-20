@@ -6,7 +6,7 @@ Detecting anomalies in system logs using **unsupervised machine learning** — n
 
 Evaluated on the public **HDFS** log dataset with ground-truth labels, the detector reaches **94% precision** on its highest-confidence predictions — roughly **11× better than random** for a dataset where only \~4.5% of blocks are anomalous.
 
-\---
+----
 
 ## The Problem
 
@@ -14,7 +14,20 @@ Production systems emit millions of log lines. Buried in them are the early sign
 
 This project takes an **unsupervised** approach instead: learn what "normal" looks like from the data itself, then flag whatever deviates — including anomalies no one wrote a rule for.
 
-\---
+----
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    Raw[Raw log lines] --> Parse[Drain3 template mining]
+    Parse --> Templates[Structured template IDs]
+    Templates --> Features[Event-count matrix<br/>grouped by block ID]
+    Features --> Model[Isolation Forest<br/>unsupervised]
+    Model --> Scores[Anomaly scores]
+    Scores --> Eval[Evaluate vs labels<br/>precision / recall / F1]
+    Labels[(HDFS ground-truth labels)] -.-> Eval
+```
 
 ## Approach
 
@@ -24,8 +37,8 @@ The pipeline runs in four stages:
 Raw log lines are parsed with the **Drain3** algorithm, which automatically groups similar lines into templates, replacing the variable parts (IDs, IPs, sizes) with wildcards. For example:
 
 ```
-PacketResponder 1 for block blk\_3886504906... terminating
-PacketResponder 0 for block blk\_-695229586... terminating
+PacketResponder 1 for block blk_3886504906... terminating
+PacketResponder 0 for block blk_-695229586... terminating
 ```
 
 both collapse to the single template:
@@ -37,7 +50,7 @@ PacketResponder <\*> for block <\*> terminating
 On a 2,000-line sample this reduced the logs to **\~17 distinct templates** — a \~130:1 compression — with **zero hand-written parsing rules**.
 
 **2. Feature engineering (logs → numbers).**
-Log lines are grouped into **sessions by block ID** (each `blk\_...` is one unit of work in HDFS), and each session becomes a row in an **event-count matrix**: columns are templates, cells are how many times each template fired in that block. This numeric fingerprint is what the model reasons over.
+Log lines are grouped into **sessions by block ID** (each `blk_...` is one unit of work in HDFS), and each session becomes a row in an **event-count matrix**: columns are templates, cells are how many times each template fired in that block. This numeric fingerprint is what the model reasons over.
 
 **3. Anomaly detection.**
 An **Isolation Forest** scores each block by how easily it can be isolated from the rest. Normal blocks sit in dense regions and take many random splits to isolate; anomalies are off on their own and isolate in few splits. The model is fully unsupervised — it never sees the labels during training.
@@ -45,7 +58,7 @@ An **Isolation Forest** scores each block by how easily it can be isolated from 
 **4. Evaluation.**
 Predictions are compared against the dataset's ground-truth `Normal`/`Anomaly` labels to compute precision, recall, and F1, and the `contamination` threshold is swept to map the precision/recall trade-off.
 
-\---
+----
 
 ## Results
 
@@ -62,7 +75,7 @@ Sweeping the `contamination` parameter (the model's assumed anomaly fraction) tr
 |0.08|1229|0.289|0.509|0.368|
 |0.15|2278|0.173|0.564|0.265|
 
-!\[Precision vs recall trade-off](results/precision\_recall\_tradeoff.png)
+![Precision vs recall trade-off](results/precision_recall_tradeoff.png)
 
 At the conservative setting, **94% of flagged blocks are genuine anomalies** — a detector an on-call engineer could actually trust without alert fatigue. Pushing `contamination` higher catches more anomalies (recall up) at the cost of more false alarms (precision down). There is no single "correct" value: the right point depends on whether missing an anomaly or raising a false alarm is more costly for the system.
 
@@ -70,9 +83,9 @@ At the conservative setting, **94% of flagged blocks are genuine anomalies** —
 
 Plotting anomaly scores by true label (log scale) shows the model cleanly separating the most anomalous blocks — the low-score region is dominated by true anomalies (red) — while a subset of anomalies that look statistically normal in count-space blend into the normal region (the source of the missed detections):
 
-!\[Anomaly score distribution](results/anomaly\_score\_distribution.png)
+![Anomaly score distribution](results/anomaly_score_distribution.png)
 
-\---
+----
 
 ## Experiment: TF-IDF weighting
 
@@ -85,7 +98,7 @@ Raw event counts treat a template that appears in almost every block the same as
 
 **Finding:** TF-IDF did not improve balanced F1, but it pushed peak precision to **98.4%** — making it the better choice when minimizing false alarms is the priority. The best feature representation depends on the objective: catch everything, or trust every alert.
 
-\---
+----
 
 ## Limitations \& next steps
 
@@ -93,7 +106,7 @@ Raw event counts treat a template that appears in almost every block the same as
 * **Single-slice evaluation.** Metrics are computed on a 200k-line slice of the full logs. The pipeline scales to the full 11M-line dataset unchanged; a full run would give a headline number on the complete corpus.
 * **Static threshold.** `contamination` is fixed; an adaptive threshold could respond to changing log volumes.
 
-\---
+----
 
 ## Tech Stack
 
@@ -104,15 +117,15 @@ Python · scikit-learn (Isolation Forest, TF-IDF) · Drain3 (template mining) ·
 ```
 ├── data/                          # log data \& generated CSVs (gitignored)
 ├── results/                       # output plots
-│   ├── anomaly\_score\_distribution.png
-│   └── precision\_recall\_tradeoff.png
+│   ├── anomaly_score_distribution.png
+│   └── precision_recall_tradeoff.png
 ├── src/
-│   ├── parse\_logs.py              # Drain3 template mining
-│   ├── build\_features.py          # event-count matrix (fixed windows)
-│   ├── build\_labeled\_dataset.py   # block-based labeled matrix from full logs
-│   ├── detect\_anomalies.py        # Isolation Forest detection
+│   ├── parse_logs.py              # Drain3 template mining
+│   ├── build_features.py          # event-count matrix (fixed windows)
+│   ├── build_labeled_dataset.py   # block-based labeled matrix from full logs
+│   ├── detect_anomalies.py        # Isolation Forest detection
 │   ├── evaluate.py                # precision/recall/F1 + contamination sweep
-│   ├── evaluate\_tfidf.py          # TF-IDF feature experiment
+│   ├── evaluate_tfidf.py          # TF-IDF feature experiment
 │   └── visualize.py               # result plots
 ├── requirements.txt
 └── README.md
@@ -127,13 +140,13 @@ venv\\Scripts\\activate            # Windows  (source venv/bin/activate on macOS
 pip install -r requirements.txt
 
 # 2. Get the data
-# Download HDFS\_v1.zip from https://zenodo.org/records/8196385
-# Place anomaly\_label.csv in data/ and point build\_labeled\_dataset.py at HDFS.log
+# Download HDFS_v1.zip from https://zenodo.org/records/8196385
+# Place anomaly_label.csv in data/ and point build_labeled_dataset.py at HDFS.log
 
 # 3. Run the pipeline
-python src/build\_labeled\_dataset.py   # parse + build labeled feature matrix
+python src/build_labeled_dataset.py   # parse + build labeled feature matrix
 python src/evaluate.py                # metrics + contamination sweep
-python src/evaluate\_tfidf.py          # TF-IDF experiment
+python src/evaluate_tfidf.py          # TF-IDF experiment
 python src/visualize.py               # generate plots
 ```
 
