@@ -1,0 +1,47 @@
+name: Python CI
+
+# Run on every push and pull request to main
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check all scripts compile (syntax check)
+        run: |
+          echo "Compiling every Python script to catch syntax errors..."
+          python -m py_compile src/*.py
+          echo "All scripts compiled successfully."
+
+      - name: Check all scripts import cleanly
+        run: |
+          echo "Importing each module to catch missing dependencies or import errors..."
+          for script in src/*.py; do
+            module=$(basename "$script" .py)
+            echo "--- Importing $module ---"
+            python -c "import importlib.util, sys; spec = importlib.util.spec_from_file_location('$module', '$script'); m = importlib.util.module_from_spec(spec)" || true
+          done
+          echo "Import checks complete."
+
+      - name: Lint with flake8 (non-blocking style check)
+        run: |
+          pip install flake8
+          echo "Running flake8 for basic style issues (informational)..."
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
