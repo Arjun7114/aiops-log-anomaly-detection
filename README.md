@@ -62,7 +62,7 @@ Sweeping the `contamination` parameter (the model's assumed anomaly fraction) tr
 |0.08|1229|0.289|0.509|0.368|
 |0.15|2278|0.173|0.564|0.265|
 
-!\[Precision vs recall trade-off](results/precision\_recall\_tradeoff.png)
+![Precision vs recall trade-off](results/precision_recall_tradeoff.png)
 
 At the conservative setting, **94% of flagged blocks are genuine anomalies** — a detector an on-call engineer could actually trust without alert fatigue. Pushing `contamination` higher catches more anomalies (recall up) at the cost of more false alarms (precision down). There is no single "correct" value: the right point depends on whether missing an anomaly or raising a false alarm is more costly for the system.
 
@@ -70,7 +70,7 @@ At the conservative setting, **94% of flagged blocks are genuine anomalies** —
 
 Plotting anomaly scores by true label (log scale) shows the model cleanly separating the most anomalous blocks — the low-score region is dominated by true anomalies (red) — while a subset of anomalies that look statistically normal in count-space blend into the normal region (the source of the missed detections):
 
-!\[Anomaly score distribution](results/anomaly\_score\_distribution.png)
+![Anomaly score distribution](results/anomaly_score_distribution.png)
 
 \---
 
